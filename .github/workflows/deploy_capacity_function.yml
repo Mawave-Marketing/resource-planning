@@ -25,7 +25,7 @@ jobs:
       with:
         name: 'resource-planning-loader'
         region: 'europe-west3'
-        source_dir: './cloud_functions/resource_planning/'
+        source_dir: './src/'
         runtime: 'python310'
         entry_point: 'main'
         memory: '512M'
