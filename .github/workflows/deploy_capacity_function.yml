@@ -1,13 +1,13 @@
-name: deploy resource planning function
+name: deploy cloud function
 on: 
   push:
     branches:
       - main
-    paths:
-      - 'cloud_functions/resource_planning/**'
-
 jobs:
   deploy:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -16,8 +16,8 @@ jobs:
     - id: 'auth'
       uses: 'google-github-actions/auth@v2'
       with:
-        project_id: 'circular-ether-368213'
-        credentials_json: ${{ secrets.GOOGLE_CLOUD_SERVICE_ACCOUNT }}
+        workload_identity_provider: 'projects/639051812907/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
+        service_account: 'sheets-bigquery-sa@circular-ether-368213.iam.gserviceaccount.com'
     
     - id: 'deploy'
       uses: 'google-github-actions/deploy-cloud-functions@v3'
@@ -26,13 +26,14 @@ jobs:
         name: 'resource-planning-loader'
         region: 'europe-west3'
         source_dir: './cloud_functions/resource_planning/'
-        runtime: 'python312'
+        runtime: 'python310'
         entry_point: 'main'
-        cpu: 0.167
         memory: '512M'
-        timeout: 540
-        min_instances: 0
-        max_instances: 1
-        event_trigger_type: 'cloud.pubsub.topic.v1.messagePublished'
+        max_instance_count: 1
+        max_instance_request_concurrency: 1
+        ingress_settings: 'ALLOW_ALL'
+        service_account: 'sheets-bigquery-sa@circular-ether-368213.iam.gserviceaccount.com'
+        service_timeout: '1500s'
+        event_trigger_type: 'google.cloud.pubsub.topic.v1.messagePublished'
         event_trigger_pubsub_topic: 'projects/circular-ether-368213/topics/resource-planning-loader'
         event_trigger_retry: false
