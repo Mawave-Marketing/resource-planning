@@ -1,0 +1,60 @@
+{
+    "project_id": "circular-ether-368213",
+    "staging_bucket": "cloudrun-stage-area",
+    "team_capacity": {
+        "team_sheets": [
+            {
+                "team": "PA",
+                "sheet_id": "1gAeqo3B0D-w9OiysvsG8oYf1FZnbhmcmF6AbPP7S8oM",
+                "department": "Paid Media"
+            },
+            {
+                "team": "PB",
+                "sheet_id": "1WSNHyq_0wD_gJ76SqT_f931DujYuFiHumOnuHoBvteQ",
+                "department": "Paid Media"
+            },
+            {
+                "team": "PC",
+                "sheet_id": "1h2_bdHXFYAspkwBNJKs_RqnNoE9emi3hwXYYPAjtr4M",
+                "department": "Paid Media"
+            },
+            {
+                "team": "PD",
+                "sheet_id": "1VjfY8f7FzpmuRHNXGcbdNQfm6ZoqLljQmTTaAFHAdCU",
+                "department": "Paid Media"
+            },
+            {
+                "team": "PE",
+                "sheet_id": "1U954MuWUbraUQU0cVKjqrq7Dhl1Sh_lqzcLZAk74pog",
+                "department": "Paid Media"
+            }
+        ],
+        "aggregated_views": [
+            {
+                "name": "Personalplanung",
+                "sheet_name": "Aggregated_Personalplanung",
+                "range": "A1:J1000",
+                "table_id": "aggregated_personalplanung"
+            },
+            {
+                "name": "Client_Projects",
+                "sheet_name": "Aggregated_Client_Projects",
+                "range": "A1:K1000",
+                "table_id": "aggregated_client_projects"
+            },
+            {
+                "name": "Client_Projects_Per_Person",
+                "sheet_name": "Aggregated_Client_Projects_Per_Person",
+                "range": "A1:N1000",
+                "table_id": "aggregated_client_projects_per_person"
+            },
+            {
+                "name": "Monitoring",
+                "sheet_name": "Aggregated_Monitoring",
+                "range": "A1:K1000",
+                "table_id": "aggregated_monitoring"
+            }
+        ],
+        "dataset_id": "dl_resource_planning"
+    }
+}
