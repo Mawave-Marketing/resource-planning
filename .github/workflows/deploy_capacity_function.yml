@@ -34,6 +34,3 @@ jobs:
         ingress_settings: 'ALLOW_ALL'
         service_account: 'sheets-bigquery-sa@circular-ether-368213.iam.gserviceaccount.com'
         service_timeout: '1500s'
-        event_trigger_type: 'google.cloud.pubsub.topic.v1.messagePublished'
-        event_trigger_pubsub_topic: 'projects/circular-ether-368213/topics/resource-planning-loader'
-        event_trigger_retry: false
