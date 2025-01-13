@@ -1,3 +1,4 @@
+// Configuration object defining the tables and their properties
 const CONFIG = {
   TEMPLATE_ID: '1OgE3WZcgOeQBaFV1P3yKyouREHQUhlm3rh3CYm1MQaA',
   
@@ -10,11 +11,11 @@ const CONFIG = {
   // Custom ranges to preserve in each monthly sheet
   MONTHLY_PRESERVED_RANGES: [
     {
-      range: 'H35:H46',
+      range: 'H39:H63',
       description: 'Custom Range 1'
     },
     {
-      range: 'I71:K98',
+      range: 'I73:K97',
       description: 'Custom Range 2'
     }
   ],
@@ -32,6 +33,14 @@ const CONFIG = {
     {
       range: 'C5',
       description: 'Planning Month'
+    },
+    {
+      range: 'G5',
+      description: 'Avg Sick Leave Reference Month'
+    },
+    {
+      range: 'B5',
+      description: 'Teamlead'
     }
   ],
   
@@ -69,7 +78,7 @@ const CONFIG = {
   ]
 };
 
-// Helper function to check if sheet name matches YYYY_MM pattern
+// Helper Functions for Sheet Processing
 function isMonthSheet(sheetName) {
   Logger.log(`Checking if ${sheetName} is a month sheet`);
   const isMonth = /^\d{4}_\d{2}$/.test(sheetName);
@@ -77,7 +86,6 @@ function isMonthSheet(sheetName) {
   return isMonth;
 }
 
-// Helper function to get preserved values from a range
 function getPreservedValues(sheet, ranges) {
   Logger.log('Getting preserved values for ranges:');
   const preservedValues = {};
@@ -93,7 +101,6 @@ function getPreservedValues(sheet, ranges) {
   return preservedValues;
 }
 
-// Helper function to restore preserved values
 function restorePreservedValues(sheet, preservedValues) {
   Logger.log('Restoring preserved values');
   for (const [range, values] of Object.entries(preservedValues)) {
@@ -107,17 +114,28 @@ function restorePreservedValues(sheet, preservedValues) {
   }
 }
 
+function columnToLetter(column) {
+  let temp, letter = '';
+  while (column > 0) {
+    temp = (column - 1) % 26;
+    letter = String.fromCharCode(temp + 65) + letter;
+    column = (column - temp - 1) / 26;
+  }
+  return letter;
+}
+
 // Function to update a monthly sheet
 function updateMonthlySheet(templateSheet, targetSheet) {
   Logger.log(`Updating monthly sheet: ${targetSheet.getName()}`);
   
   // Define ranges that should be blank
   const blankRanges = [
-    'B16:B26',
-    'B36:B46',
-    'B72:B98',
-    'B104:B111',
-    'B127:B135'
+    'B15:B30',
+    'B40:B63',
+    'B74:B97',
+    'C102:D102',
+    'B103:D111',
+    'B127:B142'
   ];
   
   // Store preserved values
@@ -131,20 +149,9 @@ function updateMonthlySheet(templateSheet, targetSheet) {
   const mergedData = templateValues.map((row, rowIndex) => 
     row.map((value, colIndex) => {
       // Skip row 5 completely
-      if (rowIndex === 4) { // 0-based index, so 4 is row 5
+      if (rowIndex === 4) {
         return targetSheet.getRange(rowIndex + 1, colIndex + 1).getValue();
       }
-      
-      // Handle blank ranges
-      const cellA1 = columnToLetter(colIndex + 1) + (rowIndex + 1);
-      const shouldBeBlank = blankRanges.some(range => 
-        isInRange(cellA1, range)
-      );
-      
-      if (shouldBeBlank) {
-        return '';
-      }
-      
       return templateFormulas[rowIndex][colIndex] || value;
     })
   );
@@ -152,32 +159,15 @@ function updateMonthlySheet(templateSheet, targetSheet) {
   // Apply merged data
   targetSheet.getRange('A1:Z1000').setValues(mergedData);
   
+  // Clear specific ranges
+  blankRanges.forEach(range => {
+    targetSheet.getRange(range).clearContent();
+  });
+  
   // Restore preserved values
   restorePreservedValues(targetSheet, preservedValues);
   
   Logger.log('Monthly sheet update completed');
-}
-
-// Helper function to convert column number to letter
-function columnToLetter(column) {
-  let temp, letter = '';
-  while (column > 0) {
-    temp = (column - 1) % 26;
-    letter = String.fromCharCode(temp + 65) + letter;
-    column = (column - temp - 1) / 26;
-  }
-  return letter;
-}
-
-// Helper function to check if a cell is within a range
-function isInRange(cellA1, rangeA1) {
-  const [startCol, startRow] = rangeA1.split(':')[0].match(/([A-Z]+)(\d+)/).slice(1);
-  const [endCol, endRow] = rangeA1.split(':')[1].match(/([A-Z]+)(\d+)/).slice(1);
-  const [cellCol, cellRow] = cellA1.match(/([A-Z]+)(\d+)/).slice(1);
-  
-  return cellCol >= startCol && cellCol <= endCol && 
-         parseInt(cellRow) >= parseInt(startRow) && 
-         parseInt(cellRow) <= parseInt(endRow);
 }
 
 // Function to update monitoring sheet
@@ -186,11 +176,15 @@ function updateMonitoringSheet(templateSheet, targetSheet) {
   
   // Define ranges that should be blank for monitoring sheet
   const blankRanges = [
-    'B16:B41',
-    'B52:B62',
-    'B73:B80',
-    'B94:B102'
+    'B16:B39',
+    'B50:B73',
+    'C80:D80',
+    'B81:D89',
+    'B103:B111'
   ];
+  
+  // Store preserved values (if any)
+  const preservedValues = getPreservedValues(targetSheet, CONFIG.GLOBAL_PRESERVED_RANGES);
   
   // Get template values and properties
   const templateValues = templateSheet.getRange('A1:Z1000').getValues();
@@ -200,20 +194,9 @@ function updateMonitoringSheet(templateSheet, targetSheet) {
   const mergedData = templateValues.map((row, rowIndex) => 
     row.map((value, colIndex) => {
       // Skip row 5 completely
-      if (rowIndex === 4) { // 0-based index, so 4 is row 5
+      if (rowIndex === 4) {
         return targetSheet.getRange(rowIndex + 1, colIndex + 1).getValue();
       }
-      
-      // Handle blank ranges
-      const cellA1 = columnToLetter(colIndex + 1) + (rowIndex + 1);
-      const shouldBeBlank = blankRanges.some(range => 
-        isInRange(cellA1, range)
-      );
-      
-      if (shouldBeBlank) {
-        return '';
-      }
-      
       return templateFormulas[rowIndex][colIndex] || value;
     })
   );
@@ -221,7 +204,95 @@ function updateMonitoringSheet(templateSheet, targetSheet) {
   // Apply merged data
   targetSheet.getRange('A1:Z1000').setValues(mergedData);
   
+  // Clear specific ranges
+  blankRanges.forEach(range => {
+    targetSheet.getRange(range).clearContent();
+  });
+  
+  // Restore preserved values
+  restorePreservedValues(targetSheet, preservedValues);
+  
   Logger.log('Project Monitoring sheet update completed');
+}
+
+// Function to deploy notes to all team sheets
+function deployNotesToTeamSheets() {
+  Logger.log('Starting notes deployment process...');
+  
+  // Get notes from development sheet
+  const devSheet = SpreadsheetApp.getActiveSpreadsheet();
+  const notesMap = new Map();
+
+  // Process each sheet in the development spreadsheet
+  devSheet.getSheets().forEach(sheet => {
+    const sheetName = sheet.getName();
+    // Skip aggregated views
+    if (sheetName.startsWith('Aggregated_')) return;
+
+    Logger.log(`Scanning sheet: ${sheetName} for notes`);
+
+    // Get the actual last row and column
+    const lastRow = sheet.getLastRow();
+    const lastCol = sheet.getLastColumn();
+    
+    // Scan entire sheet range
+    if (lastRow > 0 && lastCol > 0) {
+      const fullRange = sheet.getRange(1, 1, lastRow, lastCol);
+      const notes = fullRange.getNotes();
+      
+      // Store cells with notes
+      for (let row = 0; row < notes.length; row++) {
+        for (let col = 0; col < notes[row].length; col++) {
+          if (notes[row][col] && notes[row][col].trim() !== '') {
+            const cellA1Notation = sheet.getRange(row + 1, col + 1).getA1Notation();
+            const key = `${sheetName}!${cellA1Notation}`;
+            notesMap.set(key, notes[row][col]);
+            Logger.log(`Found note in ${key}: "${notes[row][col].substring(0, 50)}..."`);
+          }
+        }
+      }
+    }
+  });
+
+  if (notesMap.size === 0) {
+    SpreadsheetApp.getUi().alert('No notes found in development sheet.');
+    return;
+  }
+
+  Logger.log(`Found ${notesMap.size} notes to deploy`);
+
+  // Deploy to each team sheet using existing CONFIG
+  CONFIG.TARGET_SHEETS.forEach(teamSheet => {
+    try {
+      const ss = SpreadsheetApp.openById(teamSheet.id);
+      Logger.log(`Processing sheet: ${teamSheet.name}`);
+      
+      // Deploy each note to corresponding cell in target sheet
+      notesMap.forEach((note, location) => {
+        try {
+          const [sheetName, cellRef] = location.split('!');
+          const sheet = ss.getSheetByName(sheetName);
+          
+          if (sheet) {
+            const cell = sheet.getRange(cellRef);
+            cell.setNote(note);
+            Logger.log(`Deployed note to ${teamSheet.name} at ${location}`);
+          } else {
+            Logger.log(`Sheet ${sheetName} not found in ${teamSheet.name}`);
+          }
+        } catch (error) {
+          Logger.log(`Error deploying note to ${teamSheet.name} at ${location}: ${error.toString()}`);
+        }
+      });
+      
+      Logger.log(`Successfully deployed ${notesMap.size} notes to ${teamSheet.name}`);
+    } catch (error) {
+      Logger.log(`Error accessing ${teamSheet.name}: ${error.toString()}`);
+    }
+  });
+  
+  SpreadsheetApp.getUi().alert(`Successfully deployed ${notesMap.size} notes to ${CONFIG.TARGET_SHEETS.length} team sheets.`);
+  Logger.log('Notes deployment process completed');
 }
 
 // Main deployment function
@@ -286,10 +357,11 @@ function deployToTeamSheets() {
   }
 }
 
-// Create menu
+// Create menu and add all deployment options
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
   ui.createMenu('Deployment')
     .addItem('Deploy to All Team Sheets', 'deployToTeamSheets')
+    .addItem('Deploy Notes to Teams', 'deployNotesToTeamSheets')
     .addToUi();
 }
