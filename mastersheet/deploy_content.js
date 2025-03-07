@@ -93,7 +93,7 @@ const CONFIG = {
   // Helper Functions for Sheet Processing
   function isMonthSheet(sheetName) {
     Logger.log(`Checking if ${sheetName} is a month sheet`);
-    const isMonth = /^\d{4}_\d{2}$/.test(sheetName);
+    const isMonth = /^\d{4}-\d{2}$/.test(sheetName);
     Logger.log(`Result: ${isMonth}`);
     return isMonth;
   }
