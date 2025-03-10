@@ -27,32 +27,160 @@
                 "team": "PE",
                 "sheet_id": "1U954MuWUbraUQU0cVKjqrq7Dhl1Sh_lqzcLZAk74pog",
                 "department": "Paid Media"
+            },
+            {
+                "team": "CA",
+                "sheet_id": "15G7meNWRwwf4hM3qIG_IkT9OL0MjYJtw0Q6vZqOBwhM",
+                "department": "Paid Content"
+            },
+            {
+                "team": "CB",
+                "sheet_id": "1TywF7u2_gfX17p_Ya5zki_h0RUmCwfITcL8QhYhEsRU",
+                "department": "Paid Content"
+            },
+            {
+                "team": "CC",
+                "sheet_id": "1kHbHqwcHYi5uK2psGn7yLWWpffqR8swYtYMdK63dqKs",
+                "department": "Paid Content"
+            },
+            {
+                "team": "CD",
+                "sheet_id": "1AToC8OeNc1oEZmhs6xipRfZxX3JlyHoBjOAn0RjQVIU",
+                "department": "Paid Content"
+            },
+            {
+                "team": "CE",
+                "sheet_id": "1zJXZT9ffVS8bZdPv0sEGGaDVkA2leL21fbjzasYgpUI",
+                "department": "Paid Content"
             }
         ],
         "aggregated_views": [
             {
                 "name": "Personalplanung",
                 "sheet_name": "Aggregated_Personalplanung",
-                "range": "A1:J1000",
-                "table_id": "aggregated_personalplanung"
+                "range": "A1:H1000",
+                "table_id": "aggregated_personalplanung",
+                "columns": {
+                    "Year_Month": "year_month",
+                    "Teammember": "full_name",
+                    "Avg. Sick Leave (in h)": "avg_sick_leave_hours",
+                    "maximimum hours": "maximum_hours",
+                    "available hours": "available_hours",
+                    "productivity ratio": "productivity_ratio",
+                    "productive hours": "productive_hours",
+                    "Last_Updated": "last_updated"
+                }
             },
             {
                 "name": "Client_Projects",
                 "sheet_name": "Aggregated_Client_Projects",
-                "range": "A1:K1000",
-                "table_id": "aggregated_client_projects"
+                "range": "A1:J1000",
+                "table_id": "aggregated_client_projects",
+                "columns": {
+                    "Year_Month": "year_month",
+                    "Asana Projects": "asana_projects",
+                    "Contract Type": "contract_type",
+                    "Hours SOLD": "hours_sold",
+                    "Hours Forecasted": "hours_forecasted",
+                    "Project Hours Done": "project_hours_done",
+                    "Δ hours ( fc. vs. done)": "delta_hours_fc_vs_done",
+                    "efficiency target": "efficiency_target",
+                    "target hours p. Project": "target_hours_per_project",
+                    "Last_Updated": "last_updated"
+                }
             },
             {
                 "name": "Client_Projects_Per_Person",
+                "department": "Paid Media",
                 "sheet_name": "Aggregated_Client_Projects_Per_Person",
+                "range": "A1:O1000",
+                "table_id": "aggregated_client_projects_per_person",
+                "columns": {
+                    "Year_Month": "year_month",
+                    "Asana Projects": "asana_projects",
+                    "Paid Media Manager": "paid_media_manager",
+                    "PM hours done (relative)": "pm_hours_done_relative",
+                    "PM Support": "pm_support",
+                    "Support hours done (relative)": "support_hours_done_relative",
+                    "PM Vertretung": "pm_vertretung",
+                    "Rest hours done": "rest_hours_done",
+                    "PM hours plan. (rel. in %)": "pm_hours_planned_relative_pct",
+                    "Sup. hours plan. (rel. in %)": "sup_hours_planned_relative_pct",
+                    "TL hours planned": "tl_hours_planned",
+                    "Target Hours SUM": "target_hours_sum",
+                    "Target Hours PM": "target_hours_pm",
+                    "Target Hours Support": "target_hours_support",
+                    "Last_Updated": "last_updated"
+                }
+            },
+            {
+                "name": "Client_Projects_Per_Content_Product",
+                "department": "Paid Content",
+                "sheet_name": "Aggregated_Client_Projects_Per_Content_Product",
                 "range": "A1:N1000",
-                "table_id": "aggregated_client_projects_per_person"
+                "table_id": "aggregated_client_projects_per_content_product",
+                "columns": {
+                    "Year_Month": "year_month",
+                    "Asana Projects": "asana_projects",
+                    "UGC hours done (relative)": "ugc_hours_done_relative",
+                    "Classic Content hours done (rel.)": "classic_content_hours_done_relative",
+                    "Strategy hours done (rel.)": "strategy_hours_done_relative",
+                    "UGC hours plan. (rel. in %)": "ugc_hours_planned_relative_pct",
+                    "CC hours plan. (rel. in %)": "cc_hours_planned_relative_pct",
+                    "Strategy hours plan. (rel. in %)": "strategy_hours_planned_relative_pct",
+                    "TL hours planned": "tl_hours_planned",
+                    "Target Hours SUM": "target_hours_sum",
+                    "Target Hours UGC": "target_hours_ugc",
+                    "Target Hours Classic Content": "target_hours_classic_content",
+                    "Target Hours Strategy": "target_hours_strategy",
+                    "Last_Updated": "last_updated"
+                }
             },
             {
                 "name": "Monitoring",
                 "sheet_name": "Aggregated_Monitoring",
                 "range": "A1:K1000",
-                "table_id": "aggregated_monitoring"
+                "table_id": "aggregated_monitoring",
+                "columns": {
+                    "Year_Month": "year_month",
+                    "Mawavie": "full_name",
+                    "available hours": "available_hours",
+                    "Σ hours done": "sum_hours_done",
+                    "Σ prod. hours done": "sum_prod_hours_done",
+                    "productivity ratio": "productivity_ratio",
+                    "tracking quota": "tracking_quota",
+                    "Σ hours plan. (incl. int.)": "sum_hours_planned_incl_int",
+                    "Σ prod. hours (PLANNED)": "sum_prod_hours_planned",
+                    "open resources (prod. hours)": "open_resources_prod_hours",
+                    "Last_Updated": "last_updated"
+                }
+            },
+            {
+                "name": "Projects_Combined",
+                "sheet_name": "Aggregated_Projects_Combined",
+                "range": "A1:R1000",
+                "table_id": "aggregated_projects_combined",
+                "department": "Paid Content",
+                "columns": {
+                    "Year_Month": "year_month",
+                    "Project_Type": "project_type",
+                    "Role": "role",
+                    "Primary_Full_Name": "primary_full_name",
+                    "Project": "project_name",
+                    "Primary_Hours_Done_Relative": "primary_hours_done_relative",
+                    "Support_Full_Name": "support_full_name",
+                    "Support_Hours_Done_Relative": "support_hours_done_relative",
+                    "Substitute_Full_Name": "substitute_full_name",
+                    "Rest_Hours_Done": "rest_hours_done",
+                    "Primary_Hours_Planned": "primary_hours_planned",
+                    "Support_Hours_Planned": "support_hours_planned",
+                    "Substitute_Hours_Planned": "substitute_hours_planned",
+                    "Total_Target_Hours": "total_target_hours",
+                    "Primary_Target_Hours": "primary_target_hours",
+                    "Support_Target_Hours": "support_target_hours",
+                    "Substitute_Target_Hours": "substitute_target_hours",
+                    "Last_Updated": "last_updated"
+                }
             }
         ],
         "dataset_id": "dl_resource_planning"
