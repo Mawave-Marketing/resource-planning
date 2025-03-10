@@ -163,7 +163,7 @@
                 "department": "Paid Content",
                 "columns": {
                     "Year_Month": "year_month",
-                    "Project_Type": "project_type",
+                    "Product_Type": "product_type",
                     "Role": "role",
                     "Primary_Full_Name": "primary_full_name",
                     "Project": "project_name",
