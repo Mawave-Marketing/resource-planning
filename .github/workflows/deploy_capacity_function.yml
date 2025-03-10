@@ -17,7 +17,7 @@ jobs:
       uses: 'google-github-actions/auth@v2'
       with:
         workload_identity_provider: 'projects/639051812907/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
-        service_account: 'sheets-bigquery-sa@circular-ether-368213.iam.gserviceaccount.com'
+        service_account: 'github-cloud-function-deployer@circular-ether-368213.iam.gserviceaccount.com'
     
     - id: 'deploy'
       uses: 'google-github-actions/deploy-cloud-functions@v3'
@@ -26,7 +26,7 @@ jobs:
         name: 'resource-planning-loader'
         region: 'europe-west3'
         source_dir: './src/'
-        runtime: 'python312'  # Updated to Python 3.12
+        runtime: 'python312'
         entry_point: 'main'
         memory: '512M'
         max_instance_count: 1
@@ -34,7 +34,6 @@ jobs:
         ingress_settings: 'ALLOW_ALL'
         service_account: 'sheets-bigquery-sa@circular-ether-368213.iam.gserviceaccount.com'
         service_timeout: '1500s'
-        # Add PubSub trigger configuration:
         event_trigger_type: 'google.cloud.pubsub.topic.v1.messagePublished'
         event_trigger_pubsub_topic: 'projects/circular-ether-368213/topics/resource-planning-loader'
         event_trigger_retry: true
