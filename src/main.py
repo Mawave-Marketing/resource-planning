@@ -121,7 +121,7 @@ def process_team_sheet(sheets_service, team_sheet, view, sheet_name, column_mapp
         # Check for missing columns from the mapping
         missing_columns = set(column_mappings.keys()) - set(df.columns)
         if missing_columns:
-            logging.warning(f"Some columns from mapping are missing in {team_sheet['team']} - {view['name']}: {missing_columns}")
+            logging.debug(f"Some columns from mapping are missing in {team_sheet['team']} - {view['name']}: {missing_columns}")
         
         logging.info(f"Successfully read {len(df)} rows for {team_sheet['team']} - {sheet_name}")
         return df
