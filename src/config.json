@@ -78,7 +78,7 @@
                 "table_id": "aggregated_client_projects",
                 "columns": {
                     "Year_Month": "year_month",
-                    "Asana Projects": "asana_projects",
+                    "Asana Projects": "asana_project",
                     "Contract Type": "contract_type",
                     "Hours SOLD": "hours_sold",
                     "Hours Forecasted": "hours_forecasted",
@@ -97,7 +97,7 @@
                 "table_id": "aggregated_client_projects_per_person",
                 "columns": {
                     "Year_Month": "year_month",
-                    "Asana Projects": "asana_projects",
+                    "Asana Projects": "asana_project",
                     "Paid Media Manager": "paid_media_manager",
                     "PM hours done (relative)": "pm_hours_done_relative",
                     "PM Support": "pm_support",
@@ -121,7 +121,7 @@
                 "table_id": "aggregated_client_projects_per_content_product",
                 "columns": {
                     "Year_Month": "year_month",
-                    "Asana Projects": "asana_projects",
+                    "Asana Projects": "asana_project",
                     "UGC hours done (relative)": "ugc_hours_done_relative",
                     "Classic Content hours done (rel.)": "classic_content_hours_done_relative",
                     "Strategy hours done (rel.)": "strategy_hours_done_relative",
