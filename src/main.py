@@ -123,6 +123,10 @@ def process_team_sheet(sheets_service, team_sheet, view, sheet_name, column_mapp
         if missing_columns:
             logging.debug(f"Some columns from mapping are missing in {team_sheet['team']} - {view['name']}: {missing_columns}")
         
+        # Replace "nichts gefunden" and "#VALUE!" with None (NULL in the database)
+        for col in df.columns:
+            df[col] = df[col].replace(["nichts gefunden", "#VALUE!"], None)
+        
         logging.info(f"Successfully read {len(df)} rows for {team_sheet['team']} - {sheet_name}")
         return df
     except Exception as e:
@@ -135,8 +139,9 @@ def upload_to_bigquery(df, table_id, project_id, dataset_id, storage_client, big
         # Convert all data to strings
         df = df.astype(str)
         
-        # Replace empty strings with None
+        # Replace empty strings, "None", "nan" with None (will become NULL in BigQuery)
         df = df.replace(r'^\s*$', None, regex=True)
+        df = df.replace(["None", "nan"], None)
         
         # Prepare for upload
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -372,3 +377,8 @@ def import_team_capacity():
         logging.error(error_msg)
         results.append(error_msg)
         return results
+
+if __name__ == "__main__":
+    # For local testing
+    results = import_team_capacity()
+    print(json.dumps(results, indent=2))
