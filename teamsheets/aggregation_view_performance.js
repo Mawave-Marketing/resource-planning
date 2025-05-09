@@ -19,7 +19,7 @@ const TABLE_CONFIG = {
     {
       name: 'Client_Projects_Per_Person',
       headerRow: 72,
-      startRange: 'B72:N97'
+      startRange: 'B72:Q97'
     },
     {
       name: 'Monitoring',

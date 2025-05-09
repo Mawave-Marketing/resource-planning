@@ -103,13 +103,16 @@
                     "PM Support": "support_full_name",
                     "Support hours done (relative)": "support_hours_done_relative",
                     "PM Vertretung": "substitute_full_name",
+                    "Sub. hours done (relative)" : "substitute_hours_done_relative",
                     "Rest hours done": "rest_hours_done",
                     "PM hours plan. (rel. in %)": "primary_hours_planned_relative_pct",
                     "Sup. hours plan. (rel. in %)": "support_hours_planned_relative_pct",
+                    "Sub. hours plan. (rel. in %)": "substitute_hours_planned_relative_pct",
                     "TL hours planned": "tl_hours_planned",
                     "Target Hours SUM": "target_hours_sum",
                     "Target Hours PM": "primary_target_hours",
                     "Target Hours Support": "support_target_hours",
+                    "Target Hours Substitute": "substitute_target_hours",
                     "Last_Updated": "last_updated"
                 }
             },
