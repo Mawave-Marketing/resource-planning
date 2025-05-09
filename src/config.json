@@ -93,7 +93,7 @@
                 "name": "Client_Projects_Per_Person",
                 "department": "Paid Media",
                 "sheet_name": "Aggregated_Client_Projects_Per_Person",
-                "range": "A1:O1000",
+                "range": "A1:R1000",
                 "table_id": "aggregated_client_projects_per_person",
                 "columns": {
                     "Year_Month": "year_month",
