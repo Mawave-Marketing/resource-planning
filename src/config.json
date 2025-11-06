@@ -269,7 +269,7 @@
                     "Person": "person",
                     "Einsatzstatus": "einsatzstatus",
                     "Team": "team",
-                    "Hours Done per Person": "hours_done_per_person",
+                    "Hours_Done_per_Person": "hours_done_per_person",
                     "Hours_Planned_relat": "hours_planned_relat",
                     "Hours_Planned": "hours_planned",
                     "Last_Updated": "last_updated"

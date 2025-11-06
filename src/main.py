@@ -122,12 +122,12 @@ def process_team_sheet(sheets_service, team_sheet, view, sheet_name, column_mapp
         # Only map columns that actually exist in the dataframe
         valid_mappings = {k: v for k, v in column_mappings.items() if k in df.columns}
         df = df.rename(columns=valid_mappings)
-        
+
         # Check for missing columns from the mapping
         missing_columns = set(column_mappings.keys()) - set(df.columns)
         if missing_columns:
             logging.debug(f"Some columns from mapping are missing in {team_sheet['team']} - {view['name']}: {missing_columns}")
-        
+
         # Replace "nichts gefunden" and "#VALUE!" with None (NULL in the database)
         for col in df.columns:
             df[col] = df[col].replace(["nichts gefunden", "#VALUE!"], None)
