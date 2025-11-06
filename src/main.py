@@ -33,23 +33,28 @@ def get_table_prefix(department):
     }
     return prefix_mapping.get(department, "unknown")
 
-def get_table_name(view, department):
+def get_table_name(view, department, use_department_prefixes=True):
     """
     Constructs the table name based on view configuration and department
-    
+
     Args:
         view (dict): The view configuration
         department (str): The department name
-    
+        use_department_prefixes (bool): Whether to add department prefixes to table names
+
     Returns:
-        str: The table name with appropriate prefix
+        str: The table name with appropriate prefix (if enabled)
     """
+    # If prefixes are disabled, return the base table_id as-is
+    if not use_department_prefixes:
+        return view['table_id']
+
     # Get the prefix based on department
     prefix = get_table_prefix(department)
-    
+
     # Remove any existing prefix from table_id if present
     base_table_id = view['table_id'].replace('performance_', '').replace('content_', '')
-    
+
     return f"{prefix}_{base_table_id}"
 
 def fetch_sheet_with_retry(sheets_service, team_sheet, sheet_name, range_value):
@@ -126,27 +131,39 @@ def process_team_sheet(sheets_service, team_sheet, view, sheet_name, column_mapp
         # Replace "nichts gefunden" and "#VALUE!" with None (NULL in the database)
         for col in df.columns:
             df[col] = df[col].replace(["nichts gefunden", "#VALUE!"], None)
-        
+
+        # Filter out completely empty rows (all columns are None or empty string)
+        initial_row_count = len(df)
+        df = df.replace(r'^\s*$', None, regex=True)  # Replace whitespace-only with None
+        df = df.dropna(how='all')  # Drop rows where all columns are None
+
+        filtered_count = initial_row_count - len(df)
+        if filtered_count > 0:
+            logging.info(f"Filtered out {filtered_count} empty rows for {team_sheet['team']} - {sheet_name}")
+
         logging.info(f"Successfully read {len(df)} rows for {team_sheet['team']} - {sheet_name}")
         return df
     except Exception as e:
         logging.error(f"Error processing {team_sheet['team']} - {sheet_name}: {str(e)}")
         return None
 
-def upload_to_bigquery(df, table_id, project_id, dataset_id, storage_client, bigquery_client, staging_bucket):
+def upload_to_bigquery(df, table_id, project_id, dataset_id, storage_client, bigquery_client, staging_bucket, group_name=None):
     """Upload dataframe to BigQuery with error handling"""
     try:
         # Convert all data to strings
         df = df.astype(str)
-        
+
         # Replace empty strings, "None", "nan" with None (will become NULL in BigQuery)
         df = df.replace(r'^\s*$', None, regex=True)
         df = df.replace(["None", "nan"], None)
-        
+
         # Prepare for upload
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         unique_id = str(uuid.uuid4())[:8]
-        gcs_filename = f"staging/team_capacity/{table_id}/{timestamp}_{unique_id}.jsonl"
+
+        # Include group name in path if provided
+        path_prefix = f"staging/{group_name}/{table_id}" if group_name else f"staging/team_capacity/{table_id}"
+        gcs_filename = f"{path_prefix}/{timestamp}_{unique_id}.jsonl"
         
         # Upload to GCS
         logging.info(f"Uploading to GCS: {gcs_filename}")
@@ -236,131 +253,131 @@ def main(event, context):
             'message': str(e)
         }), 500
 
-def import_team_capacity():
+def process_data_group(group_name, group_config, project_id, staging_bucket, sheets_service, bigquery_client, storage_client):
     """
-    Core function to import and concatenate team capacity data
+    Process a single data group configuration
+
+    Args:
+        group_name (str): Name of the group being processed
+        group_config (dict): Configuration for this group
+        project_id (str): GCP project ID
+        staging_bucket (str): GCS staging bucket name
+        sheets_service: Google Sheets API service
+        bigquery_client: BigQuery client
+        storage_client: GCS client
+
+    Returns:
+        list: Results of processing
     """
     results = []
-    
+
     try:
-        logging.info("Starting team capacity import")
-        
-        # Read config
-        try:
-            with open('config.json', 'r') as config_file:
-                config = json.loads(config_file.read())
-        except Exception as e:
-            logging.error(f"Error reading config file: {str(e)}")
-            return ["Failed to read config file"]
-        
-        project_id = config['project_id']
-        staging_bucket = config['staging_bucket']
-        team_config = config['team_capacity']
-        
-        # Initialize credentials
-        try:
-            credentials, project = default()
-            credentials.refresh(Request())
-            
-            scoped_credentials = credentials.with_scopes([
-                'https://www.googleapis.com/auth/spreadsheets.readonly',
-                'https://www.googleapis.com/auth/cloud-platform'
-            ])
-            
-            sheets_service = build('sheets', 'v4', credentials=scoped_credentials)
-            bigquery_client = bigquery.Client(project=project_id, credentials=scoped_credentials)
-            storage_client = storage.Client(project=project_id, credentials=scoped_credentials)
-        except Exception as e:
-            logging.error(f"Error initializing credentials: {str(e)}")
-            return ["Failed to initialize credentials"]
-        
+        logging.info(f"Processing data group: {group_name}")
+
+        # Check if group is enabled
+        if not group_config.get('enabled', True):
+            logging.info(f"Group {group_name} is disabled, skipping")
+            return [f"Group {group_name} is disabled"]
+
+        # Get configuration
+        use_department_prefixes = group_config.get('use_department_prefixes', True)
+        dataset_id = group_config.get('dataset_id')
+        team_sheets = group_config.get('team_sheets', [])
+        aggregated_views = group_config.get('aggregated_views', [])
+
+        if not dataset_id:
+            error_msg = f"No dataset_id specified for group {group_name}"
+            logging.error(error_msg)
+            return [error_msg]
+
         # Process each aggregated view
-        for view in team_config['aggregated_views']:
+        for view in aggregated_views:
             view_name = view.get('name', 'Unknown view')
-            logging.info(f"Processing view: {view_name}")
+            logging.info(f"Processing view: {view_name} in group {group_name}")
 
             # If view has specific department, only process for that department
             if 'department' in view:
                 departments = [view['department']]
             else:
-                # Otherwise process for all departments
-                departments = list(set(team['department'] for team in team_config['team_sheets']))
+                # Otherwise process for all departments in this group
+                departments = list(set(team['department'] for team in team_sheets))
 
             for department in departments:
                 logging.info(f"Processing {view_name} for department: {department}")
-                
+
                 # Filter teams for current department
-                team_sheets = [team for team in team_config['team_sheets'] 
-                             if team['department'] == department]
-                
-                if not team_sheets:
+                department_team_sheets = [team for team in team_sheets
+                                         if team['department'] == department]
+
+                if not department_team_sheets:
                     logging.warning(f"No teams found for department: {department}")
-                    results.append(f"No teams found for {department}")
+                    results.append(f"No teams found for {department} in {group_name}")
                     continue
 
-                # Get the table name with correct prefix
-                table_id = get_table_name(view, department)
+                # Get the table name with correct prefix (or no prefix)
+                table_id = get_table_name(view, department, use_department_prefixes)
                 logging.info(f"Using table ID: {table_id}")
-                
+
                 # Use sheet name directly from config
                 sheet_name = view.get('sheet_name', '')
                 if not sheet_name:
                     logging.error(f"No sheet name specified for view {view_name}")
                     results.append(f"No sheet name for {view_name}")
                     continue
-                
+
                 logging.info(f"Using sheet name: {sheet_name}")
-                
+
                 # Get column mappings
                 column_mappings = view.get('columns', {})
                 if not column_mappings:
                     logging.warning(f"No column mappings found for view {view_name}. Using empty mapping.")
-                
+
                 # Process each team
                 all_team_data = []
-                
-                for team_sheet in team_sheets:
+
+                for team_sheet in department_team_sheets:
                     try:
                         df = process_team_sheet(
-                            sheets_service, 
-                            team_sheet, 
-                            view, 
-                            sheet_name, 
+                            sheets_service,
+                            team_sheet,
+                            view,
+                            sheet_name,
                             column_mappings
                         )
-                        
+
                         if df is not None and not df.empty:
                             all_team_data.append(df)
-                            
+
                             # Force garbage collection for large dataframes
                             gc.collect()
                     except Exception as e:
                         logging.error(f"Error processing {team_sheet['team']}: {str(e)}")
                         # Continue with other teams even if one fails
-                
+
                 if all_team_data:
                     try:
                         # Concatenate all team data
                         combined_df = pd.concat(all_team_data, ignore_index=True)
                         logging.info(f"Combined {len(combined_df)} rows for {view_name}")
-                        
+
                         # Upload to BigQuery
                         upload_result = upload_to_bigquery(
-                            combined_df, 
-                            table_id, 
-                            project_id, 
-                            team_config['dataset_id'], 
-                            storage_client, 
-                            bigquery_client, 
-                            staging_bucket
+                            combined_df,
+                            table_id,
+                            project_id,
+                            dataset_id,
+                            storage_client,
+                            bigquery_client,
+                            staging_bucket,
+                            group_name=group_name
                         )
                         results.append(upload_result)
-                        
+
                         # Clean up memory
                         del combined_df
                         del all_team_data
                         gc.collect()
-                        
+
                     except Exception as e:
                         error_msg = f"Error processing combined data for {view_name} - {department}: {str(e)}"
                         logging.error(error_msg)
@@ -369,14 +386,82 @@ def import_team_capacity():
                     msg = f"No data collected for {view_name} - {department}"
                     logging.warning(msg)
                     results.append(msg)
-            
+
         return results
-        
+
     except Exception as e:
-        error_msg = f"Error in team capacity import: {str(e)}"
+        error_msg = f"Error processing group {group_name}: {str(e)}"
         logging.error(error_msg)
-        results.append(error_msg)
-        return results
+        return [error_msg]
+
+
+def import_team_capacity():
+    """
+    Core function to import data from all enabled groups
+    """
+    all_results = []
+
+    try:
+        logging.info("Starting data import")
+
+        # Read config
+        try:
+            with open('config.json', 'r') as config_file:
+                config = json.loads(config_file.read())
+        except Exception as e:
+            logging.error(f"Error reading config file: {str(e)}")
+            return ["Failed to read config file"]
+
+        project_id = config.get('project_id')
+        staging_bucket = config.get('staging_bucket')
+
+        if not project_id or not staging_bucket:
+            return ["Missing project_id or staging_bucket in config"]
+
+        # Initialize credentials
+        try:
+            credentials, _ = default()
+            credentials.refresh(Request())
+
+            scoped_credentials = credentials.with_scopes([
+                'https://www.googleapis.com/auth/spreadsheets.readonly',
+                'https://www.googleapis.com/auth/cloud-platform'
+            ])
+
+            sheets_service = build('sheets', 'v4', credentials=scoped_credentials)
+            bigquery_client = bigquery.Client(project=project_id, credentials=scoped_credentials)
+            storage_client = storage.Client(project=project_id, credentials=scoped_credentials)
+        except Exception as e:
+            logging.error(f"Error initializing credentials: {str(e)}")
+            return ["Failed to initialize credentials"]
+
+        # Process each group in the config
+        # Identify groups by looking for dictionaries that contain 'team_sheets' and 'aggregated_views'
+        for key, value in config.items():
+            # Skip non-group config items
+            if key in ['project_id', 'staging_bucket'] or not isinstance(value, dict):
+                continue
+
+            # Check if this looks like a data group config
+            if 'team_sheets' in value and 'aggregated_views' in value:
+                logging.info(f"Found data group: {key}")
+                group_results = process_data_group(
+                    group_name=key,
+                    group_config=value,
+                    project_id=project_id,
+                    staging_bucket=staging_bucket,
+                    sheets_service=sheets_service,
+                    bigquery_client=bigquery_client,
+                    storage_client=storage_client
+                )
+                all_results.extend(group_results)
+
+        return all_results
+
+    except Exception as e:
+        error_msg = f"Error in data import: {str(e)}"
+        logging.error(error_msg)
+        return [error_msg]
 
 if __name__ == "__main__":
     # For local testing

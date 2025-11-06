@@ -1,7 +1,10 @@
 {
     "project_id": "circular-ether-368213",
     "staging_bucket": "cloudrun-stage-area",
-    "team_capacity": {
+    "kapa_1_0": {
+        "enabled": true,
+        "group_name": "Kapa 1.0",
+        "use_department_prefixes": true,
         "team_sheets": [
             {
                 "team": "PA",
@@ -182,6 +185,93 @@
                     "Primary_Target_Hours": "primary_target_hours",
                     "Support_Target_Hours": "support_target_hours",
                     "Substitute_Target_Hours": "substitute_target_hours",
+                    "Last_Updated": "last_updated"
+                }
+            }
+        ],
+        "dataset_id": "dl_resource_planning"
+    },
+    "kapa_2_0": {
+        "enabled": true,
+        "group_name": "Kapa 2.0",
+        "use_department_prefixes": false,
+        "team_sheets": [
+            {
+                "team": "CB",
+                "sheet_id": "1wNb_AoJ_aA09e6YqG63srQdOhzk-u0_2QmDAWEksjQE",
+                "department": "Paid Content"
+            },
+            {
+                "team": "CC",
+                "sheet_id": "1sGgLE9dUroJuLtKx7YqkqJ8wOu19lK5_61Pscdkl-b0",
+                "department": "Paid Content"
+            },
+            {
+                "team": "CD",
+                "sheet_id": "1aRHcXIBred9QyeqkzKyouMyZEX3h6NCcUYJ05xnr8NM",
+                "department": "Paid Content"
+            },
+            {
+                "team": "CE",
+                "sheet_id": "1aS1bbsnurQ53zZ9dsLDezDQkpfNFHsZXGD_4ISJBEYg",
+                "department": "Paid Content"
+            }
+        ],
+        "aggregated_views": [
+            {
+                "name": "Client_Level",
+                "sheet_name": "Concatenated_Client_Level",
+                "range": "A1:J1000",
+                "table_id": "kapa2_client_level",
+                "columns": {
+                    "Surrogate_Key": "surrogate_key",
+                    "Year_Month": "year_month",
+                    "Projekt": "projekt",
+                    "Client": "client",
+                    "Status": "status",
+                    "Hours sold": "hours_sold",
+                    "Project Hours Done": "project_hours_done",
+                    "Efficiency target": "efficiency_target",
+                    "Planned hours": "planned_hours",
+                    "Last_Updated": "last_updated"
+                }
+            },
+            {
+                "name": "Product_Level",
+                "sheet_name": "Concatenated_Product_Level",
+                "range": "A1:J1000",
+                "table_id": "kapa2_product_level",
+                "columns": {
+                    "Surrogate_Key": "surrogate_key",
+                    "Year_Month": "year_month",
+                    "Project_Name": "project_name",
+                    "Client_Name": "client_name",
+                    "Product_Index": "product_index",
+                    "Product_Per_Client": "product_per_client",
+                    "Product_Share": "product_share",
+                    "Planned_Product_Share": "planned_product_share",
+                    "Planned_Product_Hours": "planned_product_hours",
+                    "Last_Updated": "last_updated"
+                }
+            },
+            {
+                "name": "Employee_Level",
+                "sheet_name": "Concatenated_Employee_Level",
+                "range": "A1:M1000",
+                "table_id": "kapa2_employee_level",
+                "columns": {
+                    "Surrogate_Key": "surrogate_key",
+                    "Year_Month": "year_month",
+                    "Project_Name": "project_name",
+                    "Client_Name": "client_name",
+                    "Team_Section": "team_section",
+                    "Row_Index": "row_index",
+                    "Person": "person",
+                    "Einsatzstatus": "einsatzstatus",
+                    "Team": "team",
+                    "Hours Done per Person": "hours_done_per_person",
+                    "Hours_Planned_relat": "hours_planned_relat",
+                    "Hours_Planned": "hours_planned",
                     "Last_Updated": "last_updated"
                 }
             }
