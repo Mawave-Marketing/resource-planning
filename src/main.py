@@ -114,7 +114,7 @@ def process_team_sheet(sheets_service, team_sheet, view, sheet_name, column_mapp
         df = pd.DataFrame(values[1:], columns=original_headers)
 
         # Add metadata columns that will help with troubleshooting
-        df['team'] = team_sheet['team']
+        df['googlesheet_name'] = f"Strang {team_sheet['team']}"
         df['department'] = team_sheet['department']
         df['import_timestamp'] = datetime.now().isoformat()
 
