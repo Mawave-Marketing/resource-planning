@@ -215,6 +215,31 @@
                 "team": "CE",
                 "sheet_id": "1aS1bbsnurQ53zZ9dsLDezDQkpfNFHsZXGD_4ISJBEYg",
                 "department": "Paid Content"
+            },
+            {
+                "team": "OA",
+                "sheet_id": "",
+                "department": "Organic Social"
+            },
+            {
+                "team": "OB",
+                "sheet_id": "",
+                "department": "Organic Social"
+            },
+            {
+                "team": "OC",
+                "sheet_id": "",
+                "department": "Organic Social"
+            },
+            {
+                "team": "OD",
+                "sheet_id": "",
+                "department": "Organic Social"
+            },
+            {
+                "team": "OE",
+                "sheet_id": "",
+                "department": "Organic Social"
             }
         ],
         "aggregated_views": [
@@ -264,7 +289,7 @@
                     "Year_Month": "year_month",
                     "Project_Name": "project_name",
                     "Client_Name": "client_name",
-                    "Asana_Project_Strang": "asana_project_strang",
+                    "Product_Index": "product_index",
                     "Row_Index": "row_index",
                     "Person": "person",
                     "Einsatzstatus": "einsatzstatus",
