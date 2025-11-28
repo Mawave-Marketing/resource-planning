@@ -20,8 +20,8 @@ logging.basicConfig(
 )
 
 # Constants
-MAX_RETRIES = 3
-RETRY_DELAY_BASE = 2  # seconds (will be multiplied by 2^attempt for exponential backoff)
+MAX_RETRIES = 5
+RETRY_DELAY_BASE = 3  # seconds (will be multiplied by 2^attempt for exponential backoff)
 
 def get_table_prefix(department):
     """
@@ -72,7 +72,7 @@ def fetch_sheet_with_retry(sheets_service, team_sheet, sheet_name, range_value):
                 spreadsheetId=team_sheet['sheet_id'],
                 range=f"{sheet_name}!{range_value}",
                 valueRenderOption='FORMATTED_VALUE'
-            ).execute(num_retries=2)  # Built-in retries for transient errors
+            ).execute(num_retries=3)  # Built-in retries for transient errors
             
             return result
         except HttpError as e:
@@ -336,6 +336,11 @@ def process_data_group(group_name, group_config, project_id, staging_bucket, she
                 all_team_data = []
 
                 for team_sheet in department_team_sheets:
+                    # Skip teams with empty sheet_ids
+                    if not team_sheet.get('sheet_id') or team_sheet['sheet_id'].strip() == '':
+                        logging.info(f"Skipping team {team_sheet['team']} - no sheet_id configured")
+                        continue
+
                     try:
                         df = process_team_sheet(
                             sheets_service,

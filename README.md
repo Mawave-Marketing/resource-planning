@@ -17,9 +17,13 @@ Google Sheets (Multiple Teams)
 
 - **config.json**: Configuration file defining data groups, teams, sheets, and column mappings
 - **main.py**: Python script that orchestrates the data import process
-- **Google Cloud Function**: Triggered by Pub/Sub messages or manual execution
+- **Google Cloud Function (Gen 2)**: Serverless function triggered by Pub/Sub messages or manual execution
+  - Current settings: 1GB memory, 1500 second (25 minute) timeout
+  - Deployed to: `europe-west3`
 - **Google Cloud Storage**: Temporary staging area for JSONL files
 - **BigQuery**: Final destination for aggregated data
+
+> **Note**: This uses Cloud Functions, not Cloud Run. Cloud Functions are simpler for event-driven, single-purpose tasks like this data import. Cloud Run would be used for more complex containerized applications.
 
 ## Configuration Structure
 
@@ -87,6 +91,7 @@ Each view defines what data to extract and how to map columns:
 
 ### 1. Sheet Reading
 - Script reads each team's Google Sheet using the Sheets API
+- **Automatically skips teams with empty `sheet_id` values** - useful for pre-configured teams that don't have sheets yet
 - Retries with exponential backoff on transient errors (429, 500, 502, 503, 504)
 - Filters out empty rows and replaces error values (`"nichts gefunden"`, `"#VALUE!"`) with NULL
 
@@ -123,10 +128,15 @@ Each view defines what data to extract and how to map columns:
 }
 ```
 
+**Tip**: You can use empty `sheet_id` values (`""`) to pre-configure teams before their sheets are ready. The script will automatically skip them without errors.
+
 2. The script will automatically:
-   - Process these teams during the next run
-   - Combine data from all Organic Social teams
+   - Skip teams with empty sheet_ids (logged as info message)
+   - Process teams with valid sheet_ids during the next run
+   - Combine data from all teams in the same department
    - Create/update BigQuery tables accordingly
+
+3. Once you have the actual Google Sheet IDs, simply replace the empty strings with the real IDs and redeploy.
 
 ## Column Mapping
 
@@ -182,7 +192,28 @@ python main.py
 ```
 
 ### Cloud Function Deployment
+
+To deploy changes to the Cloud Function:
+
+```bash
+cd src
+gcloud functions deploy resource-planning-loader \
+  --gen2 \
+  --region=europe-west3 \
+  --runtime=python311 \
+  --source=. \
+  --entry-point=main \
+  --trigger-topic=YOUR_TRIGGER_TOPIC \
+  --memory=1GB \
+  --timeout=1500s
+```
+
 The function is triggered by Pub/Sub messages and runs automatically on schedule.
+
+**What gets deployed**:
+- `main.py`: The main script with retry logic and data processing
+- `config.json`: Team and view configurations
+- `requirements.txt`: Python dependencies
 
 ## Monitoring and Logging
 
@@ -195,10 +226,40 @@ The script provides detailed logging:
 
 Check Cloud Function logs for execution details.
 
+## Error Handling and Retries
+
+The script includes robust error handling for common Google Sheets API issues:
+
+### Retry Configuration
+- **MAX_RETRIES**: 5 attempts per sheet read
+- **RETRY_DELAY_BASE**: 3 seconds (exponential backoff: 3s, 6s, 12s, 24s, 48s)
+- **Google API Client Retries**: 3 additional built-in retries per attempt
+
+### Retry Behavior
+Total possible retries for a single sheet:
+- 5 custom retry attempts (with exponential backoff)
+- Each attempt has 3 Google API client retries
+- Maximum ~15 total retry attempts before giving up
+
+### Retryable Errors
+The script automatically retries these HTTP errors:
+- **429**: Rate limiting
+- **500**: Internal server error
+- **502**: Bad gateway
+- **503**: Service unavailable
+- **504**: Gateway timeout
+- **Read timeouts**: Network/socket timeouts
+
+### Non-Retryable Errors
+These errors fail immediately:
+- **404**: Sheet not found (e.g., empty sheet_id)
+- **403**: Permission denied
+- Other client errors (4xx)
+
 ## Common Issues
 
 ### Empty Sheet IDs
-If a team has an empty `sheet_id` (""), the script will attempt to read it and fail. Fill in valid Sheet IDs before running.
+Teams with empty `sheet_id` values are **automatically skipped** with an info log message. This allows you to pre-configure teams in config.json before their sheets are created. No errors will occur for empty sheet IDs.
 
 ### Permission Errors
 Ensure the service account has:
@@ -206,11 +267,18 @@ Ensure the service account has:
 - BigQuery data editor role
 - Cloud Storage object creator role
 
+### Timeout Errors
+If you see repeated timeout errors for specific sheets:
+- **Check sheet size**: Large sheets take longer to load
+- **Simplify formulas**: Complex calculations slow down API responses
+- **Reduce range**: Use smaller ranges in config.json if possible (e.g., A1:J500 instead of A1:J1000)
+- **Current function settings**: 1GB memory, 25 minute timeout (usually sufficient)
+
 ### Rate Limiting
-The script includes retry logic for rate limiting (HTTP 429). If you hit limits consistently, consider:
-- Reducing the number of concurrent reads
-- Increasing retry delays
-- Requesting quota increases
+The script includes robust retry logic for rate limiting (HTTP 429). If you hit limits consistently:
+- The exponential backoff will automatically handle most cases
+- Consider spacing out scheduled runs
+- Request quota increases from Google if needed
 
 ## BigQuery Schema
 
