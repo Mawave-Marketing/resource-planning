@@ -2,6 +2,7 @@ import json
 import logging
 import time
 import gc
+import os
 from google.cloud import bigquery
 from google.cloud import storage
 from googleapiclient.discovery import build
@@ -402,11 +403,19 @@ def process_data_group(group_name, group_config, project_id, staging_bucket, she
 
 def import_team_capacity():
     """
-    Core function to import data from all enabled groups
+    Core function to import data from all enabled groups or a specific group
+    Reads CONFIG_GROUP environment variable to filter which group to process
     """
     all_results = []
 
     try:
+        # Check if we should process only a specific group
+        target_group = os.environ.get('CONFIG_GROUP', None)
+        if target_group:
+            logging.info(f"CONFIG_GROUP set to: {target_group} - will only process this group")
+        else:
+            logging.info("CONFIG_GROUP not set - will process all enabled groups")
+
         logging.info("Starting data import")
 
         # Read config
@@ -441,7 +450,7 @@ def import_team_capacity():
             return ["Failed to initialize credentials"]
 
         # Process each group in the config
-        # Identify groups by looking for dictionaries that contain 'team_sheets' and 'aggregated_views'
+        groups_processed = 0
         for key, value in config.items():
             # Skip non-group config items
             if key in ['project_id', 'staging_bucket'] or not isinstance(value, dict):
@@ -449,7 +458,14 @@ def import_team_capacity():
 
             # Check if this looks like a data group config
             if 'team_sheets' in value and 'aggregated_views' in value:
-                logging.info(f"Found data group: {key}")
+                # If target_group is set, only process that specific group
+                if target_group and key != target_group:
+                    logging.info(f"Skipping group {key} (not matching target group {target_group})")
+                    continue
+
+                logging.info(f"Processing data group: {key}")
+                groups_processed += 1
+
                 group_results = process_data_group(
                     group_name=key,
                     group_config=value,
@@ -461,6 +477,12 @@ def import_team_capacity():
                 )
                 all_results.extend(group_results)
 
+        if groups_processed == 0:
+            warning_msg = f"No groups processed. Target group: {target_group if target_group else 'all'}"
+            logging.warning(warning_msg)
+            all_results.append(warning_msg)
+
+        logging.info(f"Processed {groups_processed} group(s)")
         return all_results
 
     except Exception as e:
