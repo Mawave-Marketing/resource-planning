@@ -1,4 +1,6 @@
 google-cloud-bigquery
 google-cloud-storage
-google-api-python-client
+gspread==6.1.2
+gspread-dataframe==4.0.0
 pandas
+google-auth
