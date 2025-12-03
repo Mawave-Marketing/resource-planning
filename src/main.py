@@ -399,7 +399,6 @@ def process_data_group(group_name, group_config, project_id, staging_bucket, she
         logging.error(error_msg)
         return [error_msg]
 
-
 def import_team_capacity():
     """
     Core function to import data from all enabled groups
