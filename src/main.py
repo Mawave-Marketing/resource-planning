@@ -26,9 +26,8 @@ logging.basicConfig(
 # Constants
 MAX_RETRIES = 5
 RETRY_DELAY_BASE = 3  # seconds
-MAX_CONCURRENT_REQUESTS = 5  # Balance between speed and API limits (reduced to avoid 429 errors)
-RATE_LIMIT_REQUESTS = 90  # Stay under 100 requests/100s quota
-RATE_LIMIT_WINDOW = 100  # seconds
+MAX_CONCURRENT_REQUESTS = 3  # Reduced to avoid rate limit (was 5)
+REQUEST_DELAY = 1.5  # Delay between requests in seconds to stay under 60/min quota
 
 # Rate limiter: allows max concurrent requests and tracks rate limiting
 rate_limiter = Semaphore(MAX_CONCURRENT_REQUESTS)
@@ -104,6 +103,9 @@ def fetch_sheet_with_retry(gc, team_sheet, sheet_name, range_value):
         try:
             with rate_limiter:
                 logging.info(f"Fetching {team_sheet['team']} - {sheet_name}, attempt {attempt + 1}/{MAX_RETRIES}")
+
+                # Add delay to respect rate limits (60 requests/min = max 1 req/second)
+                time.sleep(REQUEST_DELAY)
 
                 # Open spreadsheet and worksheet
                 spreadsheet = gc.open_by_key(team_sheet['sheet_id'])
