@@ -1,7 +1,7 @@
 import json
 import logging
 import time
-import gc
+import gc as garbage_collector
 from google.cloud import bigquery
 from google.cloud import storage
 from google.auth import default
@@ -25,7 +25,7 @@ logging.basicConfig(
 # Constants
 MAX_RETRIES = 5
 RETRY_DELAY_BASE = 3  # seconds
-MAX_CONCURRENT_REQUESTS = 10  # Balance between speed and API limits
+MAX_CONCURRENT_REQUESTS = 5  # Balance between speed and API limits (reduced to avoid 429 errors)
 RATE_LIMIT_REQUESTS = 90  # Stay under 100 requests/100s quota
 RATE_LIMIT_WINDOW = 100  # seconds
 
@@ -201,7 +201,7 @@ def process_team_sheet(gc, team_sheet, view, sheet_name, column_mappings):
 
         # Filter out completely empty rows
         initial_row_count = len(df)
-        df = df.replace(r'^\s*$', None, regex=True)
+        df = df.replace(r'^\s*$', None, regex=True).infer_objects(copy=False)
         df = df.dropna(how='all')
 
         filtered_count = initial_row_count - len(df)
@@ -222,7 +222,7 @@ def upload_to_bigquery(df, table_id, project_id, dataset_id, storage_client, big
         df = df.astype(str)
 
         # Replace empty strings, "None", "nan" with None (will become NULL in BigQuery)
-        df = df.replace(r'^\s*$', None, regex=True)
+        df = df.replace(r'^\s*$', None, regex=True).infer_objects(copy=False)
         df = df.replace(["None", "nan"], None)
 
         # Prepare for upload
@@ -474,7 +474,7 @@ def process_data_group(group_name, group_config, project_id, staging_bucket, gc,
                         # Clean up memory
                         del combined_df
                         del all_team_data
-                        gc.collect()
+                        garbage_collector.collect()
 
                     except Exception as e:
                         error_msg = f"Error processing combined data for {view_name} - {department}: {str(e)}"
