@@ -3,12 +3,16 @@ import logging
 import time
 import gc
 import os
+import io
 from google.cloud import bigquery
 from google.cloud import storage
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from googleapiclient.http import MediaIoBaseDownload
 from google.auth import default
 from google.auth.transport.requests import Request
+import google_auth_httplib2
+import httplib2
 import pandas as pd
 from datetime import datetime
 import uuid
@@ -23,6 +27,7 @@ logging.basicConfig(
 # Constants
 MAX_RETRIES = 5
 RETRY_DELAY_BASE = 3  # seconds (will be multiplied by 2^attempt for exponential backoff)
+HTTP_TIMEOUT = 300  # 5 minutes for HTTP requests
 
 def get_table_prefix(department):
     """
@@ -57,6 +62,147 @@ def get_table_name(view, department, use_department_prefixes=True):
     base_table_id = view['table_id'].replace('performance_', '').replace('content_', '')
 
     return f"{prefix}_{base_table_id}"
+
+def export_sheet_to_gcs_with_retry(drive_service, storage_client, sheet_id, team_name, staging_bucket, group_name):
+    """
+    Export a Google Sheet to GCS as CSV using Drive API with retry logic.
+    This is more reliable than reading via Sheets API for large datasets.
+
+    Args:
+        drive_service: Google Drive API service
+        storage_client: GCS client
+        sheet_id: Google Sheet ID
+        team_name: Team name for logging/path
+        staging_bucket: GCS bucket name
+        group_name: Group name for organizing files
+
+    Returns:
+        str: GCS blob name of the exported file
+    """
+    last_exception = None
+
+    for attempt in range(MAX_RETRIES):
+        try:
+            logging.info(f"Exporting {team_name} to GCS (attempt {attempt + 1}/{MAX_RETRIES})")
+
+            # Export sheet as CSV via Drive API
+            request = drive_service.files().export_media(
+                fileId=sheet_id,
+                mimeType='text/csv'
+            )
+
+            # Download to memory
+            fh = io.BytesIO()
+            downloader = MediaIoBaseDownload(fh, request)
+            done = False
+            while not done:
+                status, done = downloader.next_chunk()
+                if status:
+                    logging.debug(f"Export progress: {int(status.progress() * 100)}%")
+
+            # Generate GCS path
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            unique_id = str(uuid.uuid4())[:8]
+            gcs_blob_name = f"exports/{group_name}/{team_name}/{timestamp}_{unique_id}.csv"
+
+            # Upload to GCS
+            bucket = storage_client.bucket(staging_bucket)
+            blob = bucket.blob(gcs_blob_name)
+            blob.upload_from_string(fh.getvalue(), content_type='text/csv')
+
+            gcs_uri = f"gs://{staging_bucket}/{gcs_blob_name}"
+            logging.info(f"Successfully exported {team_name} to {gcs_uri}")
+
+            return gcs_blob_name
+
+        except HttpError as e:
+            last_exception = e
+            if e.resp.status in [429, 500, 502, 503, 504]:  # Retryable HTTP errors
+                wait_time = RETRY_DELAY_BASE * (2 ** attempt)
+                logging.warning(f"HTTP error {e.resp.status} exporting {team_name}. Retrying in {wait_time}s.")
+                time.sleep(wait_time)
+            else:
+                logging.error(f"Non-retryable HTTP error exporting {team_name}: {str(e)}")
+                raise
+        except Exception as e:
+            last_exception = e
+            wait_time = RETRY_DELAY_BASE * (2 ** attempt)
+            if attempt < MAX_RETRIES - 1:
+                logging.warning(f"Error exporting {team_name}. Retrying in {wait_time}s. Error: {str(e)}")
+                time.sleep(wait_time)
+            else:
+                logging.error(f"Error exporting {team_name} after {MAX_RETRIES} attempts: {str(e)}")
+
+    # If we've exhausted all retries, raise the last exception
+    if last_exception:
+        raise last_exception
+
+def process_team_sheet_from_gcs(storage_client, staging_bucket, gcs_blob_name, team_sheet, view, sheet_name, column_mappings):
+    """
+    Process a team sheet from a CSV file stored in GCS.
+    This replaces the Sheets API reading approach.
+
+    Args:
+        storage_client: GCS client
+        staging_bucket: GCS bucket name
+        gcs_blob_name: Name of the CSV blob in GCS
+        team_sheet: Team configuration dict
+        view: View configuration dict
+        sheet_name: Name of the sheet (for logging)
+        column_mappings: Column name mappings
+
+    Returns:
+        DataFrame or None
+    """
+    try:
+        logging.info(f"Reading {team_sheet['team']} - {sheet_name} from GCS")
+
+        # Download CSV from GCS
+        bucket = storage_client.bucket(staging_bucket)
+        blob = bucket.blob(gcs_blob_name)
+        csv_content = blob.download_as_text()
+
+        # Parse CSV into DataFrame
+        df = pd.read_csv(io.StringIO(csv_content))
+
+        if df.empty:
+            logging.warning(f"No data rows found for {team_sheet['team']} - {sheet_name}")
+            return None
+
+        # Add metadata columns
+        df['googlesheet_name'] = f"Strang {team_sheet['team']}"
+        df['department'] = team_sheet['department']
+        df['import_timestamp'] = datetime.now().isoformat()
+
+        # Rename columns according to mapping
+        # Only map columns that actually exist in the dataframe
+        valid_mappings = {k: v for k, v in column_mappings.items() if k in df.columns}
+        df = df.rename(columns=valid_mappings)
+
+        # Check for missing columns from the mapping
+        missing_columns = set(column_mappings.keys()) - set(df.columns)
+        if missing_columns:
+            logging.debug(f"Some columns from mapping are missing in {team_sheet['team']} - {view['name']}: {missing_columns}")
+
+        # Replace "nichts gefunden" and "#VALUE!" with None (NULL in the database)
+        for col in df.columns:
+            df[col] = df[col].replace(["nichts gefunden", "#VALUE!"], None)
+
+        # Filter out completely empty rows (all columns are None or empty string)
+        initial_row_count = len(df)
+        df = df.replace(r'^\s*$', None, regex=True)  # Replace whitespace-only with None
+        df = df.dropna(how='all')  # Drop rows where all columns are None
+
+        filtered_count = initial_row_count - len(df)
+        if filtered_count > 0:
+            logging.info(f"Filtered out {filtered_count} empty rows for {team_sheet['team']} - {sheet_name}")
+
+        logging.info(f"Successfully read {len(df)} rows for {team_sheet['team']} - {sheet_name}")
+        return df
+
+    except Exception as e:
+        logging.error(f"Error processing {team_sheet['team']} - {sheet_name} from GCS: {str(e)}")
+        return None
 
 def fetch_sheet_with_retry(sheets_service, team_sheet, sheet_name, range_value):
     """
@@ -254,7 +400,7 @@ def main(event, context):
             'message': str(e)
         }), 500
 
-def process_data_group(group_name, group_config, project_id, staging_bucket, sheets_service, bigquery_client, storage_client):
+def process_data_group(group_name, group_config, project_id, staging_bucket, drive_service, bigquery_client, storage_client):
     """
     Process a single data group configuration
 
@@ -263,7 +409,7 @@ def process_data_group(group_name, group_config, project_id, staging_bucket, she
         group_config (dict): Configuration for this group
         project_id (str): GCP project ID
         staging_bucket (str): GCS staging bucket name
-        sheets_service: Google Sheets API service
+        drive_service: Google Drive API service (replaces sheets_service for better reliability)
         bigquery_client: BigQuery client
         storage_client: GCS client
 
@@ -343,12 +489,25 @@ def process_data_group(group_name, group_config, project_id, staging_bucket, she
                         continue
 
                     try:
-                        df = process_team_sheet(
-                            sheets_service,
-                            team_sheet,
-                            view,
-                            sheet_name,
-                            column_mappings
+                        # Step 1: Export Google Sheet to GCS as CSV (more reliable than Sheets API)
+                        gcs_blob_name = export_sheet_to_gcs_with_retry(
+                            drive_service=drive_service,
+                            storage_client=storage_client,
+                            sheet_id=team_sheet['sheet_id'],
+                            team_name=team_sheet['team'],
+                            staging_bucket=staging_bucket,
+                            group_name=group_name
+                        )
+
+                        # Step 2: Process the CSV from GCS
+                        df = process_team_sheet_from_gcs(
+                            storage_client=storage_client,
+                            staging_bucket=staging_bucket,
+                            gcs_blob_name=gcs_blob_name,
+                            team_sheet=team_sheet,
+                            view=view,
+                            sheet_name=sheet_name,
+                            column_mappings=column_mappings
                         )
 
                         if df is not None and not df.empty:
@@ -438,13 +597,20 @@ def import_team_capacity():
             credentials.refresh(Request())
 
             scoped_credentials = credentials.with_scopes([
-                'https://www.googleapis.com/auth/spreadsheets.readonly',
+                'https://www.googleapis.com/auth/drive.readonly',  # Drive API for exporting sheets
                 'https://www.googleapis.com/auth/cloud-platform'
             ])
 
-            sheets_service = build('sheets', 'v4', credentials=scoped_credentials)
+            # Configure httplib2 with timeout for better reliability
+            http = httplib2.Http(timeout=HTTP_TIMEOUT)
+            http = google_auth_httplib2.AuthorizedHttp(scoped_credentials, http=http)
+
+            # Initialize Drive API service (replaces Sheets API for more reliable exports)
+            drive_service = build('drive', 'v3', credentials=scoped_credentials, http=http)
             bigquery_client = bigquery.Client(project=project_id, credentials=scoped_credentials)
             storage_client = storage.Client(project=project_id, credentials=scoped_credentials)
+
+            logging.info(f"Initialized services with {HTTP_TIMEOUT}s HTTP timeout")
         except Exception as e:
             logging.error(f"Error initializing credentials: {str(e)}")
             return ["Failed to initialize credentials"]
@@ -471,7 +637,7 @@ def import_team_capacity():
                     group_config=value,
                     project_id=project_id,
                     staging_bucket=staging_bucket,
-                    sheets_service=sheets_service,
+                    drive_service=drive_service,
                     bigquery_client=bigquery_client,
                     storage_client=storage_client
                 )

@@ -43,13 +43,13 @@ jobs:
         source_dir: './src/'
         runtime: 'python312'
         entry_point: 'main'
-        memory: '2048M'
+        memory: '4096M'
         environment_variables: 'CONFIG_GROUP=kapa_1_0'
         max_instance_count: 3
         max_instance_request_concurrency: 1
         ingress_settings: 'ALLOW_ALL'
         service_account: 'sheets-bigquery-sa@circular-ether-368213.iam.gserviceaccount.com'
-        service_timeout: '540s'
+        service_timeout: '1500s'
         event_trigger_type: 'google.cloud.pubsub.topic.v1.messagePublished'
         event_trigger_pubsub_topic: 'projects/circular-ether-368213/topics/resource-planning-loader-kapa1'
         event_trigger_retry: true
@@ -80,13 +80,13 @@ jobs:
         source_dir: './src/'
         runtime: 'python312'
         entry_point: 'main'
-        memory: '2048M'
+        memory: '4096M'
         environment_variables: 'CONFIG_GROUP=kapa_2_0'
         max_instance_count: 3
         max_instance_request_concurrency: 1
         ingress_settings: 'ALLOW_ALL'
         service_account: 'sheets-bigquery-sa@circular-ether-368213.iam.gserviceaccount.com'
-        service_timeout: '540s'
+        service_timeout: '1500s'
         event_trigger_type: 'google.cloud.pubsub.topic.v1.messagePublished'
         event_trigger_pubsub_topic: 'projects/circular-ether-368213/topics/resource-planning-loader-kapa2'
         event_trigger_retry: true
