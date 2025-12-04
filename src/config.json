@@ -219,7 +219,7 @@
                         "name": "Client_Level",
                         "sheet_name": "OGC_Concatenated_Client_Level",
                         "range": "A1:J10000",
-                        "table_id": "kapa2_client_level",
+                        "table_id": "ogc_kapa2_client_level",
                         "columns": {
                             "Surrogate_Key": "surrogate_key",
                             "Year_Month": "year_month",
@@ -237,7 +237,7 @@
                         "name": "Product_Level",
                         "sheet_name": "OGC_Concatenated_Product_Level",
                         "range": "A1:J10000",
-                        "table_id": "kapa2_product_level",
+                        "table_id": "ogc_kapa2_product_level",
                         "columns": {
                             "Surrogate_Key": "surrogate_key",
                             "Year_Month": "year_month",
@@ -255,7 +255,7 @@
                         "name": "Employee_Level",
                         "sheet_name": "OGC_Concatenated_Employee_Level",
                         "range": "A1:M10000",
-                        "table_id": "kapa2_employee_level",
+                        "table_id": "ogc_kapa2_employee_level",
                         "columns": {
                             "Surrogate_Key": "surrogate_key",
                             "Year_Month": "year_month",
@@ -283,7 +283,7 @@
                         "name": "Client_Level",
                         "sheet_name": "CNT_Concatenated_Client_Level",
                         "range": "A1:J10000",
-                        "table_id": "kapa2_client_level",
+                        "table_id": "cnt_kapa2_client_level",
                         "columns": {
                             "Surrogate_Key": "surrogate_key",
                             "Year_Month": "year_month",
@@ -301,7 +301,7 @@
                         "name": "Product_Level",
                         "sheet_name": "CNT_Concatenated_Product_Level",
                         "range": "A1:J10000",
-                        "table_id": "kapa2_product_level",
+                        "table_id": "cnt_kapa2_product_level",
                         "columns": {
                             "Surrogate_Key": "surrogate_key",
                             "Year_Month": "year_month",
@@ -319,7 +319,7 @@
                         "name": "Employee_Level",
                         "sheet_name": "CNT_Concatenated_Employee_Level",
                         "range": "A1:M10000",
-                        "table_id": "kapa2_employee_level",
+                        "table_id": "cnt_kapa2_employee_level",
                         "columns": {
                             "Surrogate_Key": "surrogate_key",
                             "Year_Month": "year_month",
