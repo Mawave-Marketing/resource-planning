@@ -606,7 +606,8 @@ def import_team_capacity():
             http = google_auth_httplib2.AuthorizedHttp(scoped_credentials, http=http)
 
             # Initialize Drive API service (replaces Sheets API for more reliable exports)
-            drive_service = build('drive', 'v3', credentials=scoped_credentials, http=http)
+            # Note: Pass http (which has credentials wrapped) OR credentials, not both
+            drive_service = build('drive', 'v3', http=http)
             bigquery_client = bigquery.Client(project=project_id, credentials=scoped_credentials)
             storage_client = storage.Client(project=project_id, credentials=scoped_credentials)
 
