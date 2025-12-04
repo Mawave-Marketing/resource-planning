@@ -277,7 +277,7 @@
             {
                 "department": "Paid Content",
                 "prefix": "CNT",
-                "teams": ["CB", "CC", "CD", "CE"],
+                "teams": ["CA", "CB", "CC", "CD", "CE"],
                 "sheets": [
                     {
                         "name": "Client_Level",
