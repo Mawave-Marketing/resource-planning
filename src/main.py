@@ -362,7 +362,6 @@ def main(event, context):
             'message': str(e)
         }), 500
 
-
 if __name__ == "__main__":
     results = import_team_capacity()
     print(json.dumps(results, indent=2))

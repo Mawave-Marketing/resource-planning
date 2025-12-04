@@ -49,7 +49,7 @@ jobs:
         max_instance_request_concurrency: 1
         ingress_settings: 'ALLOW_ALL'
         service_account: 'sheets-bigquery-sa@circular-ether-368213.iam.gserviceaccount.com'
-        service_timeout: '1500s'
+        service_timeout: '540s'
         event_trigger_type: 'google.cloud.pubsub.topic.v1.messagePublished'
         event_trigger_pubsub_topic: 'projects/circular-ether-368213/topics/resource-planning-loader-kapa1'
         event_trigger_retry: true
@@ -86,7 +86,7 @@ jobs:
         max_instance_request_concurrency: 1
         ingress_settings: 'ALLOW_ALL'
         service_account: 'sheets-bigquery-sa@circular-ether-368213.iam.gserviceaccount.com'
-        service_timeout: '1500s'
+        service_timeout: '540s'
         event_trigger_type: 'google.cloud.pubsub.topic.v1.messagePublished'
         event_trigger_pubsub_topic: 'projects/circular-ether-368213/topics/resource-planning-loader-kapa2'
         event_trigger_retry: true
